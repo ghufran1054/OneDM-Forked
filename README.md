@@ -53,7 +53,7 @@ First Create a director called save and download the Model checkpoints from this
 1. RN18_class_10400.pth
 1. vae_HTR138.pth
 
-The data folder contains one folder for laplace Image and one normal Image for style. Convert style image to laplace using the script laplace.py
+The data folder contains one folder for laplace Image and one normal Image for style. Convert style image to laplace using the script laplace.py. JUst Make sure the image is 64px in heights. (This is for custom data style. OneDM also have provided their dataset folder from which we can use prepared laplace and normal style images)
 
 then run test.py to generate words according to style.
 
