@@ -10,6 +10,63 @@ from models.diffusion import Diffusion
 import torchvision
 from utils.util import fix_seed
 
+device = torch.cuda() if torch.cuda.is_available() else torch.device('cpu')
+
+from PIL import Image
+
+def arrange_images_in_page(images, page_width, line_height, horizontal_spacing=30, vertical_spacing=20):
+    """
+    Arrange images into a fixed-width "page" with line wrapping, including spacing between words and lines.
+
+    Args:
+        images: List of PIL Image objects.
+        page_width: Fixed width of the page.
+        line_height: Height of each line (height of images + vertical spacing).
+        horizontal_spacing: Space between images in the same line.
+        vertical_spacing: Space between lines.
+
+    Returns:
+        A single PIL Image object with arranged images and spacing.
+    """
+    # Initialize variables for line tracking
+    lines = []
+    current_line = []
+    current_width = 0
+
+    # Arrange images into lines
+    for img in images:
+        img_width, img_height = img.size
+        # Check if the image fits in the current line (accounting for spacing)
+        if current_width + img_width + (len(current_line) * horizontal_spacing) > page_width:
+            # Start a new line
+            lines.append(current_line)
+            current_line = []
+            current_width = 0
+        # Add the image to the current line
+        current_line.append(img)
+        current_width += img_width
+
+    # Add the last line if it contains any images
+    if current_line:
+        lines.append(current_line)
+
+    # Calculate total page height
+    page_height = len(lines) * line_height + (len(lines) - 1) * vertical_spacing + 40
+
+    # Create a new blank image for the page
+    page_image = Image.new("RGB", (page_width + 30, page_height), (255, 255, 255))
+
+    # Paste images into the page
+    y_offset = 20
+    for line in lines:
+        x_offset = 30
+        for i, img in enumerate(line):
+            # Paste image
+            page_image.paste(img, (x_offset, y_offset))
+            x_offset += img.size[0] + horizontal_spacing  # Add spacing after each image
+        y_offset += line_height + vertical_spacing  # Move down to the next line
+
+    return page_image
 def main(opt):
     """ load config file into cfg"""
     cfg_from_file(opt.cfg_file)
@@ -39,7 +96,7 @@ def main(opt):
 
     target_dir = os.path.join(opt.save_dir, opt.generate_type)
 
-    diffusion = Diffusion(device='cpu')  # Ensure Diffusion runs on CPU
+    diffusion = Diffusion(device=device)  # Ensure Diffusion runs on CPU
 
     """build model architecture"""
     unet = UNetModel(
@@ -51,22 +108,23 @@ def main(opt):
         channel_mult=(1, 1), 
         num_heads=cfg.MODEL.NUM_HEADS, 
         context_dim=cfg.MODEL.EMB_DIM
-    ).to('cpu')
+    ).to(device)
 
     """load pretrained one_dm model"""
     if len(opt.one_dm) > 0: 
-        unet.load_state_dict(torch.load(f'{opt.one_dm}', map_location=torch.device('cpu')))
+        unet.load_state_dict(torch.load(f'{opt.one_dm}', map_location=device))
         print('Loaded pretrained one_dm model from {}'.format(opt.one_dm))
     else:
         raise IOError('Input the correct checkpoint path')
     unet.eval()
 
     vae = AutoencoderKL.from_pretrained(opt.stable_dif_path, subfolder="vae")
-    vae = vae.to('cpu')
+    vae = vae.to(device)
     vae.requires_grad_(False)
 
     """generate the handwriting datasets"""
     loader_iter = iter(style_loader)
+    images = []
     for x_text in tqdm(temp_texts, position=0, desc='batch_number'):
         data = next(loader_iter)
         data_val, laplace, wid = data['style'][0], data['laplace'][0], data['wid']
@@ -84,11 +142,11 @@ def main(opt):
             data_loader.append((data_val, laplace, wid))
         
         for (data_val, laplace, wid) in data_loader:
-            style_input = data_val.to('cpu')
-            laplace = laplace.to('cpu')
+            style_input = data_val.to(device)
+            laplace = laplace.to(device)
             text_ref = load_content.get_content(x_text)
-            text_ref = text_ref.to('cpu').repeat(style_input.shape[0], 1, 1, 1)
-            x = torch.randn((text_ref.shape[0], 4, style_input.shape[2]//8, (text_ref.shape[1]*32)//8)).to('cpu')
+            text_ref = text_ref.to(device).repeat(style_input.shape[0], 1, 1, 1)
+            x = torch.randn((text_ref.shape[0], 4, style_input.shape[2]//8, (text_ref.shape[1]*32)//8)).to(device)
 
             if opt.sample_method == 'ddim':
                 ema_sampled_images = diffusion.ddim_sample(unet, vae, style_input.shape[0], 
@@ -106,6 +164,11 @@ def main(opt):
                 out_path = os.path.join(target_dir, wid[index][0])
                 os.makedirs(out_path, exist_ok=True)
                 image.save(os.path.join(out_path, x_text + ".png"))
+                images.append(image)
+    
+    # Stich all the images width wise to get a single image
+    page_image = arrange_images_in_page(images, 720, images[0].height)
+    page_image.save(os.path.join(target_dir, 'page.png'))
 
 if __name__ == '__main__':
     """Parse input arguments"""
@@ -117,7 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--generate_type', dest='generate_type', required=True, help='Four generation settings: iv_s, iv_u, oov_s, oov_u')
     parser.add_argument('--device', type=str, default='cpu', help='Device for testing')
     parser.add_argument('--stable_dif_path', type=str, default='runwayml/stable-diffusion-v1-5')
-    parser.add_argument('--sampling_timesteps', type=int, default=50)
+    parser.add_argument('--sampling_timesteps', type=int, default=10)
     parser.add_argument('--sample_method', type=str, default='ddim', help='Choose the method for sampling')
     parser.add_argument('--eta', type=float, default=0.0)
     opt = parser.parse_args()

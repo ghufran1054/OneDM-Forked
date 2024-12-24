@@ -19,7 +19,9 @@ text_path = {'train':'data/IAM64_train.txt',
 generate_type = {'iv_s':['train', 'data/in_vocab.subset.tro.37'],
                 'iv_u':['test', 'data/in_vocab.subset.tro.37'],
                 'oov_s':['train', 'data/oov.common_words'],
-                'oov_u':['test', 'data/oov.common_words']}
+                'oov_u':['test', 'data/oov.common_words'],
+                'custom' :['test', 'data/test_document.txt']
+                }
 
 # define the letters and the width of style image
 letters = '_Only thewigsofrcvdampbkuq.A-210xT5\'MDL,RYHJ"ISPWENj&BC93VGFKz();#:!7U64Q8?+*ZX/%'
