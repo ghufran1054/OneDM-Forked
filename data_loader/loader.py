@@ -198,6 +198,8 @@ class Random_StyleIAMDataset(IAMDataset):
         self.author_id = os.listdir(os.path.join(self.style_path))
         self.style_len = style_len
         self.ref_num = ref_num
+        print("Author_id", self.author_id)
+
     
     def __len__(self):
         return self.ref_num
