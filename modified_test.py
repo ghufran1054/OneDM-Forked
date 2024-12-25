@@ -121,7 +121,7 @@ def arrange_images_in_page(images, page_width, line_height, horizontal_spacing=3
 
     return page_image
 
-def post_process_image(image, method="edge", threshold=128, laplacian_kernel_size=3):
+def post_process_image(image, method="threshold", threshold=100, laplacian_kernel_size=3):
     """
     Sharpen the image using different techniques.
 

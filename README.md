@@ -48,17 +48,17 @@ conda env create -f environment.yml
 ```
 ## ☀️ MY Custom running Instructions
 Script had been Modified to run on CPU for inference. 
-First Create a director called save and download the Model checkpoints from this Repo Links:
+First Create a director called saved and download the Model checkpoints from this Repo Links:
 1. One-DM-ckpt.pt
 1. RN18_class_10400.pth
 1. vae_HTR138.pth
 
-The data folder contains one folder for laplace Image and one normal Image for style. Convert style image to laplace using the script laplace.py. JUst Make sure the image is 64px in heights. (This is for custom data style. OneDM also have provided their dataset folder from which we can use prepared laplace and normal style images)
+The data folder contains one folder for laplace Image and one normal Image for style. Just Make sure the image is 64px in heights if we use our own style images. (This is for custom data style. OneDM also have provided their dataset folder from which we can use prepared laplace and normal style images)
 
-then run test.py to generate words according to style.
+then run modified_test.py to generate words according to style.
 
-python test.py \   --one_dm ./saved/One-DM-ckpt.pt \                                                      
-   --generate_type oov_u --dir ./Generated/English
+python modified_test.py \   --one_dm ./saved/One-DM-ckpt.pt \                                                      
+   --generate_type custom --dir ./Generated/English
 
 ## ☀️ Datasets
 We provide English datasets in [Google Drive](https://drive.google.com/drive/folders/108TB-z2ytAZSIEzND94dyufybjpqVyn6) | [Baidu Netdisk](https://pan.baidu.com/s/14ESFRk0RaTr98eeLzcr_xw?pwd=4vsv) | [ShiZhi AI](https://wisemodel.cn/models/SCUT-MMPR/One-DM/blob/main/English_data.zip). Please download these datasets, uzip them and move the extracted files to /data.
